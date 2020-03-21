@@ -1,7 +1,6 @@
 #include "address.hpp"
 
-#include <fmt/format.h>
-#include <fmt/printf.h>
+#include <spdlog/spdlog.h>
 
 #include <memory>
 #include <stdexcept>
@@ -17,7 +16,7 @@ namespace net {
 	class Socket {
 		int s_{-1};
 
-	public:
+	protected:
 		int	handle() const	{ return s_; }
 		int	handle(int s)	{ return s = s_; }
 
@@ -158,5 +157,6 @@ try {
 	udp.sendto("yo", addr);
 }
 catch (const std::exception& e) {
-	fmt::printf("fatal: %s\n", e.what());
+//	fmt::printf("fatal: %s\n", e.what());
+	spdlog::error("fatal: {}", e.what());
 }

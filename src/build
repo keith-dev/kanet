@@ -1,1 +1,1 @@
-c++ -g -std=c++17 -pedantic -Wall -Wextra -I/usr/local/include main.cc -o test -L/usr/local/lib -lfmt
+c++ -g -std=c++17 -pedantic -Wall -Wextra -DSPDLOG_FMT_EXTERNAL -I/usr/local/include main.cc -o test -L/usr/local/lib -lspdlog -lfmt
