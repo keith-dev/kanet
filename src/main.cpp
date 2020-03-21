@@ -47,7 +47,7 @@ namespace net {
 	};
 
 	//------------------------------------------------------------------------
-	template <typename ADDR>
+//	template <typename ADDR>
 	class TCP : public Socket {
 	public:
 		TCP() = default;
@@ -64,7 +64,7 @@ namespace net {
 
 			int ret = ::recv(handle(), buffer.get(), 4096, 0);
 			if (ret == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" payload=\"{}\"", "recv", errno, strerror(errno), buffer)};
+				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" payload=\"{}\"", "recv", errno, strerror(errno), buffer.get())};
 
 			return { buffer.get(), static_cast<size_t>(ret) };
 		}
@@ -75,31 +75,6 @@ namespace net {
 				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" payload=\"{}\"", "recv", errno, strerror(errno), buffer)};
 
 			return static_cast<size_t>(ret);
-		}
-	};
-
-	template <typename ADDR>
-	class TCPServer : public TCP<ADDR> {
-	public:
-		TCPServer() = default;
-		~TCPServer() = default;
-
-		TCPServer(const ADDR& addr) {
-			bind(addr);
-		}
-
-		void connect() {
-			int s = connect(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-			if (s == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\"", "connect", errno, strerror(errno))};
-
-//			handle(s);
-		}
-
-		void bind(const ADDR& addr) {
-//			int ret = ::bind(handle(), addr, addr.size());
-//			if (ret == -1)
-//				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" address=\"{}:{}\"", "bind", errno, strerror(errno), addr.address(), addr.port())};
 		}
 	};
 
@@ -137,6 +112,33 @@ namespace net {
 			return static_cast<size_t>(ret);
 		}
 	};
+
+	//------------------------------------------------------------------------
+	template <typename ADDR>
+	class TCPServer : public TCP {
+	public:
+		TCPServer() = default;
+		~TCPServer() = default;
+
+		TCPServer(const ADDR& addr) {
+			socket();
+			bind(addr);
+		}
+
+		void socket() {
+			int s = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+			if (s == -1)
+				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\"", "connect", errno, strerror(errno))};
+
+			handle(s);
+		}
+
+		void bind(const ADDR& addr) {
+			int ret = ::bind(handle(), addr, addr.size());
+			if (ret == -1)
+				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" address=\"{}:{}\"", "bind", errno, strerror(errno), addr.address(), addr.port())};
+		}
+	};
 } // net
 
 //----------------------------------------------------------------------------
@@ -148,15 +150,40 @@ try {
 	const uint16_t port{ static_cast<uint16_t>(argc > 2 ? atoi(argv[2]) : 8080) };
 	ip4_address addr(host, port);
 
-	net::TCPServer tcpserver(addr);
+	try
+	{
+		net::TCPServer tcpserver(addr);
+	}
+	catch (const std::exception& e) {
+		spdlog::error("error: {}", e.what());
+	}
 
-	net::TCP<ip4_address> tcp;
-	tcp.send("hello world");
+	try
+	{
+		net::TCP tcp;
+		tcp.send("hello world");
+	}
+	catch (const std::exception& e) {
+		spdlog::error("error: {}", e.what());
+	}
 
-	net::UDP<ip4_address> udp;
-	udp.sendto("yo", addr);
+	try
+	{
+		net::UDP<ip4_address> udp;
+		udp.sendto("yo", addr);
+	}
+	catch (const std::exception& e) {
+		spdlog::error("error: {}", e.what());
+	}
+
+	try
+	{
+		net::TCPServer<ip4_address> tcpsrv(addr);
+	}
+	catch (const std::exception& e) {
+		spdlog::error("error: {}", e.what());
+	}
 }
 catch (const std::exception& e) {
-//	fmt::printf("fatal: %s\n", e.what());
 	spdlog::error("fatal: {}", e.what());
 }
