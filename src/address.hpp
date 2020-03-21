@@ -18,7 +18,6 @@ namespace net {
 	//------------------------------------------------------------------------
 	template <typename ADDR>
 	struct ip_address : ADDR {
-		using address_type = ADDR;
 		using inherited = ADDR;
 
 		ip_address(std::string_view addr_str, uint16_t port = 0) : inherited(addr_str, port) {}
@@ -32,17 +31,21 @@ namespace net {
 		void set(uint16_t port) { inherited::set(port); }
 		void set(const ADDR& addr) { inherited::set(addr); }
 
-		uint16_t			port() const { return inherited::port(); }
-		std::string			address() const { return inherited::address(); }
-		int					family() const { return inherited::family(); }
+		uint16_t	port() const { return inherited::port(); }
+		std::string	address() const { return inherited::address(); }
+		int			family() const { return inherited::family(); }
 
 		operator const sockaddr* () const { return reinterpret_cast<const sockaddr*>(this); }
 		operator sockaddr* () { return reinterpret_cast<sockaddr*>(this); }
-		socklen_t			size() const { return sizeof(*this); }
+		socklen_t	size() const { return sizeof(*this); }
+
+		constexpr int domain() const { return inherited::domain; }
+		constexpr int type() const { return inherited::type; }
+		constexpr int protocol() const { return inherited::protocol; }
 	};
 
 	//------------------------------------------------------------------------
-	struct ip4 : public sockaddr_in {
+	struct ip4 : sockaddr_in {
 		using address_type = sockaddr_in;
 
 		ip4(std::string_view addr_str, uint16_t port = 0) {
@@ -150,5 +153,41 @@ namespace net {
 		int family() const {
 			return sin6_family;
 		}
+	};
+
+	//------------------------------------------------------------------------
+	struct ip4_stream : ip4 {
+		using ip4::ip4;
+
+		static constexpr int domain{ PF_INET };
+		static constexpr int type{ SOCK_STREAM };
+		static constexpr int protocol{ IPPROTO_TCP };
+	};
+
+	//------------------------------------------------------------------------
+	struct ip4_datagram : ip4 {
+		using ip4::ip4;
+
+		static constexpr int domain{ PF_INET };
+		static constexpr int type{ SOCK_DGRAM };
+		static constexpr int protocol{ IPPROTO_UDP };
+	};
+
+	//------------------------------------------------------------------------
+	struct ip6_stream : ip6 {
+		using ip6::ip6;
+
+		static constexpr int domain{ PF_INET6 };
+		static constexpr int type{ SOCK_STREAM };
+		static constexpr int protocol{ IPPROTO_TCP };
+	};
+
+	//------------------------------------------------------------------------
+	struct ip6_datagram : ip6 {
+		using ip6::ip6;
+
+		static constexpr int domain{ PF_INET6 };
+		static constexpr int type{ SOCK_STREAM };
+		static constexpr int protocol{ IPPROTO_UDP };
 	};
 } // net

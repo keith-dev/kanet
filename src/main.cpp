@@ -18,7 +18,7 @@ namespace net {
 
 	protected:
 		int	handle() const	{ return s_; }
-		int	handle(int s)	{ return s = s_; }
+		int	handle(int s)	{ return s_ = s; }
 
 	public:
 		Socket(int s = -1) : s_(s) {}
@@ -47,9 +47,8 @@ namespace net {
 	};
 
 	//------------------------------------------------------------------------
-//	template <typename ADDR>
 	class TCP : public Socket {
-	public:
+	protected:
 		TCP() = default;
 		~TCP() = default;
 
@@ -59,6 +58,7 @@ namespace net {
 		TCP(TCP&& n) = default;
 		TCP& operator=(TCP&& n) = default;
 
+	public:
 		std::string recv() {
 			std::unique_ptr<char[]> buffer{ new char[4096] };
 
@@ -81,7 +81,7 @@ namespace net {
 	//------------------------------------------------------------------------
 	template <typename ADDR>
 	class UDP : public Socket {
-	public:
+	protected:
 		UDP() = default;
 		~UDP() = default;
 
@@ -91,6 +91,7 @@ namespace net {
 		UDP(UDP&& n) = default;
 		UDP& operator=(UDP&& n) = default;
 
+	public:
 		std::string recvfrom(ADDR& addr) {
 			std::unique_ptr<char[]> buffer{ new char[4096] };
 
@@ -123,6 +124,7 @@ namespace net {
 		TCPServer(const ADDR& addr) {
 			socket();
 			bind(addr);
+			listen(16);
 		}
 
 		void socket() {
@@ -138,52 +140,30 @@ namespace net {
 			if (ret == -1)
 				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" address=\"{}:{}\"", "bind", errno, strerror(errno), addr.address(), addr.port())};
 		}
+
+		void listen(int depth) {
+			int ret = ::listen(handle(), depth);
+			if (ret == -1)
+				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" depth=\"{}\"", "listen", errno, strerror(errno), depth)};
+		}
 	};
 } // net
 
 //----------------------------------------------------------------------------
-using ip4_address = net::ip_address<net::ip4>;
+using ip4_address = net::ip_address<net::ip4_stream>;
 
 int main(int argc, char* argv[])
 try {
 	const char* host{ argc > 1 ? argv[1] : "127.0.0.1" };
-	const uint16_t port{ static_cast<uint16_t>(argc > 2 ? atoi(argv[2]) : 8080) };
+	const uint16_t port{ static_cast<uint16_t>(argc > 2 ? atoi(argv[2]) : 12345) };
 	ip4_address addr(host, port);
 
 	try
 	{
 		net::TCPServer tcpserver(addr);
 	}
-	catch (const std::exception& e) {
-		spdlog::error("error: {}", e.what());
-	}
-
-	try
-	{
-		net::TCP tcp;
-		tcp.send("hello world");
-	}
-	catch (const std::exception& e) {
-		spdlog::error("error: {}", e.what());
-	}
-
-	try
-	{
-		net::UDP<ip4_address> udp;
-		udp.sendto("yo", addr);
-	}
-	catch (const std::exception& e) {
-		spdlog::error("error: {}", e.what());
-	}
-
-	try
-	{
-		net::TCPServer<ip4_address> tcpsrv(addr);
-	}
-	catch (const std::exception& e) {
-		spdlog::error("error: {}", e.what());
-	}
+	catch (const std::exception& e) { spdlog::error("error: file{} line={} text={}", __FILE__, __LINE__, e.what()); throw; }
 }
 catch (const std::exception& e) {
-	spdlog::error("fatal: {}", e.what());
+	spdlog::error("fatal: file{} line={} text={}", __FILE__, __LINE__, e.what());
 }
