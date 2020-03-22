@@ -1,168 +1,29 @@
 #include "address.hpp"
+#include "socket.hpp"
 
 #include <spdlog/spdlog.h>
 
-#include <memory>
-#include <stdexcept>
-#include <string>
+#include <list>
+#include <exception>
 
-#include <stdint.h>
 #include <stdlib.h>
-
-//----------------------------------------------------------------------------
-
-namespace net {
-	//------------------------------------------------------------------------
-	class Socket {
-		int s_{-1};
-
-	protected:
-		int	handle() const	{ return s_; }
-		int	handle(int s)	{ return s_ = s; }
-
-	public:
-		Socket(int s = -1) : s_(s) {}
-		~Socket() { close(); }
-
-		Socket(const Socket& n) = delete;
-		Socket& operator=(const Socket& n) = delete;
-
-		Socket(Socket&& s) : s_(s.s_) { s.s_ = -1; }
-		Socket& operator=(Socket&& s) {
-			if (this != &s) {
-				close();
-
-				s_ = s.s_;
-				s.s_ = -1;
-			}
-			return *this;
-		}
-
-		void close() {
-			if (s_ != -1) {
-				::close(s_);
-				s_ = -1;
-			}
-		}
-	};
-
-	//------------------------------------------------------------------------
-	class TCP : public Socket {
-	protected:
-		TCP() = default;
-		~TCP() = default;
-
-		TCP(const TCP& n) = delete;
-		TCP& operator=(const TCP& n) = delete;
-
-		TCP(TCP&& n) = default;
-		TCP& operator=(TCP&& n) = default;
-
-	public:
-		std::string recv() {
-			std::unique_ptr<char[]> buffer{ new char[4096] };
-
-			int ret = ::recv(handle(), buffer.get(), 4096, 0);
-			if (ret == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" payload=\"{}\"", "recv", errno, strerror(errno), buffer.get())};
-
-			return { buffer.get(), static_cast<size_t>(ret) };
-		}
-
-		size_t send(std::string_view buffer) {
-			int ret = ::send(handle(), buffer.data(), buffer.size(), 0);
-			if (ret == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" payload=\"{}\"", "recv", errno, strerror(errno), buffer)};
-
-			return static_cast<size_t>(ret);
-		}
-	};
-
-	//------------------------------------------------------------------------
-	template <typename ADDR>
-	class UDP : public Socket {
-	protected:
-		UDP() = default;
-		~UDP() = default;
-
-		UDP(const UDP& n) = delete;
-		UDP& operator=(const UDP& n) = delete;
-
-		UDP(UDP&& n) = default;
-		UDP& operator=(UDP&& n) = default;
-
-	public:
-		std::string recvfrom(ADDR& addr) {
-			std::unique_ptr<char[]> buffer{ new char[4096] };
-
-			socklen_t len = 0;
-			int ret = ::recvfrom(handle(), buffer.get(), 4096, 0, &addr, &len);
-			if (ret == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" payload=\"{}\"", "recvfrom", errno, strerror(errno), buffer)};
-			if (sizeof(addr) != len)
-				throw std::runtime_error("address type error");
-
-			return { buffer.get(), static_cast<size_t>(ret) };
-		}
-
-		size_t sendto(std::string_view buffer, const ADDR& addr) {
-			int ret = ::sendto(handle(), buffer.data(), buffer.size(), 0, addr, addr.size());
-			if (ret == -1)
-				throw std::runtime_error{fmt::format("{}(\"{}:{}\") failed: errno={} desc=\"{}\" payload=\"{}\"", "sendto", addr.address(), addr.port(), errno, strerror(errno), buffer)};
-
-			return static_cast<size_t>(ret);
-		}
-	};
-
-	//------------------------------------------------------------------------
-	template <typename ADDR>
-	class TCPServer : public TCP {
-	public:
-		TCPServer() = default;
-		~TCPServer() = default;
-
-		TCPServer(const ADDR& addr) {
-			socket();
-			bind(addr);
-			listen(16);
-		}
-
-		void socket() {
-			int s = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-			if (s == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\"", "connect", errno, strerror(errno))};
-
-			handle(s);
-		}
-
-		void bind(const ADDR& addr) {
-			int ret = ::bind(handle(), addr, addr.size());
-			if (ret == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" address=\"{}:{}\"", "bind", errno, strerror(errno), addr.address(), addr.port())};
-		}
-
-		void listen(int depth) {
-			int ret = ::listen(handle(), depth);
-			if (ret == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" depth=\"{}\"", "listen", errno, strerror(errno), depth)};
-		}
-	};
-} // net
+#include <string.h>
 
 //----------------------------------------------------------------------------
 using ip4_address = net::ip_address<net::ip4_stream>;
 
 int main(int argc, char* argv[])
 try {
-	const char* host{ argc > 1 ? argv[1] : "127.0.0.1" };
-	const uint16_t port{ static_cast<uint16_t>(argc > 2 ? atoi(argv[2]) : 12345) };
-	ip4_address addr(host, port);
+	std::list<net::TCPServer<ip4_address>> tcpservers;
 
-	try
-	{
-		net::TCPServer tcpserver(addr);
+	for (int i = 1; i < argc; ++i) {
+		if (char* p = strchr(argv[i], ':')) {
+			*p = 0;
+			const char* host{ argv[i] };
+			const uint16_t port{ static_cast<uint16_t>(atoi(p + 1)) };
+			tcpservers.emplace_back( ip4_address{host, port} );
+		}
 	}
-	catch (const std::exception& e) { spdlog::error("error: file{} line={} text={}", __FILE__, __LINE__, e.what()); throw; }
 }
 catch (const std::exception& e) {
 	spdlog::error("fatal: file{} line={} text={}", __FILE__, __LINE__, e.what());
