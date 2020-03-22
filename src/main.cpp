@@ -1,5 +1,5 @@
-#include "address.hpp"
-#include "socket.hpp"
+#include "net/address.hpp"
+#include "net/socket.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -15,7 +15,6 @@ using ip4_address = net::ip_address<net::ip4_stream>;
 int main(int argc, char* argv[])
 try {
 	std::list<net::TCPServer<ip4_address>> tcpservers;
-
 	for (int i = 1; i < argc; ++i) {
 		if (char* p = strchr(argv[i], ':')) {
 			*p = 0;

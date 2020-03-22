@@ -18,8 +18,7 @@ namespace net {
 		int s_{-1};
 
 	protected:
-		int	handle() const	{ return s_; }
-		int	handle(int s)	{ return s_ = s; }
+		int	handle(int s) { return s_ = s; }
 
 	public:
 		Socket(int s = -1) : s_(s) {}
@@ -38,6 +37,8 @@ namespace net {
 			}
 			return *this;
 		}
+
+		int	handle() const { return s_; }
 
 		void close() {
 			if (s_ != -1) {

@@ -1,9 +1,13 @@
-PROGS_CXX = test
-SRCS      = main.cpp
-MK_MAN    = no
-NO_OBJ    = noobj
+PROG_CXX = test
+SRCS = main.cpp
 
 CXXFLAGS  = -g -std=c++17 -pedantic -Wall -Wextra -DSPDLOG_FMT_EXTERNAL -I../include -I/usr/local/include
 LDFLAGS  += -L/usr/local/lib -lspdlog -lfmt
 
-.include <bsd.progs.mk>
+all: $(PROG_CXX)
+
+clean:
+	-rm $(PROG_CXX) $(SRCS:.cpp=.o)
+
+$(PROG_CXX): $(SRCS:.cpp=.o)
+	$(LINK.cc) $^ -o $@ $(LDFLAGS)
