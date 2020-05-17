@@ -25,23 +25,23 @@ namespace net {
 		ip_address(uint16_t port = 0) : inherited(port) {}
 
 		void set(std::string_view addr_str) { inherited::set(addr_str); }
-		void set(const char* addr_str) { inherited::set(addr_str); }
+		void set(const char* addr_str)  { inherited::set(addr_str); }
 		void set(std::string_view addr_str, uint16_t port) { inherited::set(addr_str, port); }
 		void set(const char* addr_str, uint16_t port) { inherited::set(addr_str, port); }
-		void set(uint16_t port) { inherited::set(port); }
-		void set(const ADDR& addr) { inherited::set(addr); }
+		void set(uint16_t port)         { inherited::set(port); }
+		void set(const ADDR& addr)      { inherited::set(addr); }
 
-		uint16_t	port() const { return inherited::port(); }
-		std::string	address() const { return inherited::address(); }
-		int			family() const { return inherited::family(); }
+		uint16_t    port() const        { return inherited::port(); }
+		std::string address() const     { return inherited::address(); }
+		int         family() const      { return inherited::family(); }
 
 		operator const sockaddr* () const { return reinterpret_cast<const sockaddr*>(this); }
-		operator sockaddr* () { return reinterpret_cast<sockaddr*>(this); }
-		socklen_t	size() const { return sizeof(*this); }
+		operator sockaddr* ()           { return reinterpret_cast<sockaddr*>(this); }
+		socklen_t   size() const        { return sizeof(*this); }
 
-		constexpr int domain() const { return inherited::domain; }
-		constexpr int type() const { return inherited::type; }
-		constexpr int protocol() const { return inherited::protocol; }
+		static constexpr int domain()   { return inherited::domain; }
+		static constexpr int type()     { return inherited::type; }
+		static constexpr int protocol() { return inherited::protocol; }
 	};
 
 	//------------------------------------------------------------------------

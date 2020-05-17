@@ -50,21 +50,15 @@ namespace net {
 
 	//------------------------------------------------------------------------
 	class TCP : public Socket {
-	protected:
+	public:
+		TCP(int s) : Socket(s) {}
 		TCP() = default;
 		~TCP() = default;
 
-		TCP(const TCP& n) = delete;
-		TCP& operator=(const TCP& n) = delete;
+		std::string recv(size_t nbytes = 4096) {
+			std::unique_ptr<char[]> buffer{ new char[nbytes] };
 
-		TCP(TCP&& n) = default;
-		TCP& operator=(TCP&& n) = default;
-
-	public:
-		std::string recv() {
-			std::unique_ptr<char[]> buffer{ new char[4096] };
-
-			int ret = ::recv(handle(), buffer.get(), 4096, 0);
+			int ret = ::recv(handle(), buffer.get(), nbytes, 0);
 			if (ret == -1)
 				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\" payload=\"{}\"", "recv", errno, strerror(errno), buffer.get())};
 
@@ -87,11 +81,11 @@ namespace net {
 		UDP() = default;
 		~UDP() = default;
 
-		UDP(const UDP& n) = delete;
-		UDP& operator=(const UDP& n) = delete;
+//		UDP(const UDP& n) = delete;
+//		UDP& operator=(const UDP& n) = delete;
 
-		UDP(UDP&& n) = default;
-		UDP& operator=(UDP&& n) = default;
+//		UDP(UDP&& n) = default;
+//		UDP& operator=(UDP&& n) = default;
 
 	public:
 		std::string recvfrom(ADDR& addr) {
@@ -120,23 +114,20 @@ namespace net {
 	template <typename ADDR>
 	class TCPServer : public TCP {
 	public:
-		TCPServer() = default;
-		~TCPServer() = default;
-
-		TCPServer(const ADDR& addr) {
-			socket();
+		TCPServer(ADDR addr) : TCP(::socket(ADDR::domain(), ADDR::type(), ADDR::protocol())) {
 			bind(addr);
 			listen(16);
 		}
+		~TCPServer() = default;
 
-		void socket() {
-			int s = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-			if (s == -1)
-				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\"", "connect", errno, strerror(errno))};
-
-			handle(s);
-		}
-
+//		void socket() {
+//			int s = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+//			if (s == -1)
+//				throw std::runtime_error{fmt::format("{}() failed: errno={} desc=\"{}\"", "connect", errno, strerror(errno))};
+//
+//			handle(s);
+//		}
+//
 		void bind(const ADDR& addr) {
 			int ret = ::bind(handle(), addr, addr.size());
 			if (ret == -1)
