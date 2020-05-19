@@ -1,11 +1,11 @@
-PROJECTS = src
+SUBDIR = src
 
-.PHONY: $(PROJECTS)
+.PHONY: $(SUBDIR)
 
-all: $(PROJECTS)
+all: $(SUBDIR)
 
 clean:
-	for P in $(PROJECTS); do $(MAKE) --directory=$$P clean; done
+	for P in $(SUBDIR); do $(MAKE) --directory=$$P clean; done
 
-$(PROJECTS):
+$(SUBDIR):
 	$(MAKE) -C $@
